@@ -78,16 +78,34 @@ export default function GameTabScreen() {
       Alert.alert('撃破済み', 'このボスは既に倒しています');
       return;
     }
+    setSelectedBoss({ stage, boss });
+  }, []);
+
+  const handleStartBossBattle = useCallback((useItem: boolean) => {
+    if (!selectedBoss) return;
     
-    const success = gameStore.startBossBattle(stage.id);
+    if (useItem) {
+      const success = gameStore.useItem('schw_power');
+      if (!success) {
+        Alert.alert('エラー', 'アイテムがありません');
+        return;
+      }
+    }
+    
+    const success = gameStore.startBossBattle(selectedBoss.stage.id);
     if (success) {
       setShowBossSelect(false);
       setSelectedBoss(null);
+      
+      if (useItem) {
+        gameStore.startCFAQuiz();
+      }
+      
       router.push('/game/battle');
     } else {
       Alert.alert('エラー', 'ボス戦を開始できません');
     }
-  }, [router]);
+  }, [selectedBoss, router]);
 
   const handleBuyItem = useCallback((itemType: ItemType) => {
     const success = gameStore.buyItem(itemType);
@@ -581,58 +599,94 @@ export default function GameTabScreen() {
         visible={showBossSelect}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowBossSelect(false)}
+        onRequestClose={() => { setShowBossSelect(false); setSelectedBoss(null); }}
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>👹 ボス戦</Text>
             <Text style={[styles.bossHint, { color: colors.muted }]}>各ステージのボスに挑戦！倒すと限定報酬</Text>
             
-            <ScrollView style={styles.bossList}>
-              {STAGES.filter(s => s.boss && unlockedStages.includes(s.id)).map((stage) => {
-                const boss = stage.boss!;
-                const defeated = gameStore.isBossDefeated(boss.id);
+            {!selectedBoss ? (
+              <>
+                <ScrollView style={styles.bossList}>
+                  {STAGES.filter(s => s.boss && unlockedStages.includes(s.id)).map((stage) => {
+                    const boss = stage.boss!;
+                    const defeated = gameStore.isBossDefeated(boss.id);
+                    
+                    return (
+                      <Pressable
+                        key={boss.id}
+                        style={({ pressed }) => [
+                          styles.bossItem,
+                          { 
+                            backgroundColor: defeated ? colors.border : colors.surface,
+                            borderColor: defeated ? colors.success : colors.error,
+                            opacity: defeated ? 0.6 : (pressed ? 0.7 : 1)
+                          }
+                        ]}
+                        onPress={() => handleBossBattle(stage, boss)}
+                        disabled={defeated}
+                      >
+                        <Text style={styles.bossSprite}>{boss.sprite}</Text>
+                        <View style={styles.bossInfo}>
+                          <Text style={[styles.bossName, { color: defeated ? colors.muted : colors.foreground }]}>
+                            {boss.nameJa}
+                          </Text>
+                          <Text style={[styles.bossStageName, { color: colors.muted }]}>{stage.nameJa}</Text>
+                          <Text style={[styles.bossStats, { color: colors.muted }]}>
+                            HP:{boss.hp} ATK:{boss.attack}
+                          </Text>
+                        </View>
+                        <View style={styles.bossRewards}>
+                          <Text style={[styles.bossRewardText, { color: colors.warning }]}>💰{boss.goldReward}</Text>
+                          <Text style={[styles.bossRewardText, { color: colors.primary }]}>⭐{boss.expReward}</Text>
+                          {defeated && <Text style={[styles.defeatedText, { color: colors.success }]}>撃破済</Text>}
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
                 
-                return (
-                  <Pressable
-                    key={boss.id}
-                    style={({ pressed }) => [
-                      styles.bossItem,
-                      { 
-                        backgroundColor: defeated ? colors.border : colors.surface,
-                        borderColor: defeated ? colors.success : colors.error,
-                        opacity: defeated ? 0.6 : (pressed ? 0.7 : 1)
-                      }
-                    ]}
-                    onPress={() => handleBossBattle(stage, boss)}
-                    disabled={defeated}
-                  >
-                    <Text style={styles.bossSprite}>{boss.sprite}</Text>
-                    <View style={styles.bossInfo}>
-                      <Text style={[styles.bossName, { color: defeated ? colors.muted : colors.foreground }]}>
-                        {boss.nameJa}
-                      </Text>
-                      <Text style={[styles.bossStageName, { color: colors.muted }]}>{stage.nameJa}</Text>
-                      <Text style={[styles.bossStats, { color: colors.muted }]}>
-                        HP:{boss.hp} ATK:{boss.attack}
-                      </Text>
-                    </View>
-                    <View style={styles.bossRewards}>
-                      <Text style={[styles.bossRewardText, { color: colors.warning }]}>💰{boss.goldReward}</Text>
-                      <Text style={[styles.bossRewardText, { color: colors.primary }]}>⭐{boss.expReward}</Text>
-                      {defeated && <Text style={[styles.defeatedText, { color: colors.success }]}>撃破済</Text>}
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-            
-            <Pressable
-              style={[styles.closeButton, { backgroundColor: colors.primary }]}
-              onPress={() => setShowBossSelect(false)}
-            >
-              <Text style={styles.closeButtonText}>閉じる</Text>
-            </Pressable>
+                <Pressable
+                  style={[styles.closeButton, { backgroundColor: colors.primary }]}
+                  onPress={() => setShowBossSelect(false)}
+                >
+                  <Text style={styles.closeButtonText}>閉じる</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <View style={[styles.selectedBossCard, { backgroundColor: colors.surface, borderColor: colors.error }]}>
+                  <Text style={styles.bossSprite}>{selectedBoss.boss.sprite}</Text>
+                  <Text style={[styles.bossName, { color: colors.foreground }]}>{selectedBoss.boss.nameJa}</Text>
+                  <Text style={[styles.bossStats, { color: colors.muted }]}>HP:{selectedBoss.boss.hp} ATK:{selectedBoss.boss.attack}</Text>
+                </View>
+                
+                <Text style={[styles.itemSelectTitle, { color: colors.foreground }]}>アイテムを使いますか？</Text>
+                
+                <Pressable
+                  style={[styles.itemButton, { backgroundColor: colors.warning }]}
+                  onPress={() => handleStartBossBattle(true)}
+                >
+                  <Text style={styles.itemButtonText}>⚡ Schwの力を使う（所持: {schwCount}個）</Text>
+                  <Text style={[styles.itemButtonHint, { color: '#fff' }]}>CFA実問正解でEXP10倍！</Text>
+                </Pressable>
+                
+                <Pressable
+                  style={[styles.itemButton, { backgroundColor: colors.primary }]}
+                  onPress={() => handleStartBossBattle(false)}
+                >
+                  <Text style={styles.itemButtonText}>そのまま戦う</Text>
+                </Pressable>
+                
+                <Pressable
+                  style={[styles.closeButton, { backgroundColor: colors.muted }]}
+                  onPress={() => setSelectedBoss(null)}
+                >
+                  <Text style={styles.closeButtonText}>戻る</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -1110,6 +1164,34 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   defeatedText: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  selectedBossCard: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  itemSelectTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  itemButton: {
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  itemButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  itemButtonHint: {
     fontSize: 12,
     marginTop: 4,
   },

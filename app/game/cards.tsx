@@ -24,8 +24,9 @@ export default function CardsScreen() {
     loadCards();
 
     const unsubscribe = gameStore.subscribe(() => {
-      setCards(gameStore.getPlayer().cards);
-      setPlayer(gameStore.getPlayer());
+      const p = gameStore.getPlayer();
+      setCards([...p.cards]);
+      setPlayer({ ...p });
     });
     return unsubscribe;
   }, []);
