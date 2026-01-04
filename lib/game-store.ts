@@ -169,9 +169,23 @@ class GameStore {
       const saved = await AsyncStorage.getItem(GAME_STATE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
+        // 新しいプロパティがない場合はデフォルト値を使用
+        const player = {
+          ...INITIAL_PLAYER_STATE,
+          ...parsed.player,
+          cards: parsed.player?.cards || [],
+          currentDeck: parsed.player?.currentDeck || [],
+          items: parsed.player?.items || [],
+          gold: parsed.player?.gold ?? 0,
+          deckCapacity: parsed.player?.deckCapacity ?? LEVEL_LIMITS.getDeckCapacity(1),
+          handSize: parsed.player?.handSize ?? LEVEL_LIMITS.getHandSize(1),
+          activeItem: parsed.player?.activeItem ?? null,
+        };
         this.state = {
           ...this.state,
-          ...parsed,
+          player,
+          unlockedStages: parsed.unlockedStages || [1],
+          currentStage: parsed.currentStage || 1,
           battle: { ...INITIAL_BATTLE_STATE }, // バトル状態はリセット
         };
       }

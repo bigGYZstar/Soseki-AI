@@ -21,14 +21,14 @@ export default function GameTabScreen() {
       await gameStore.loadState();
       await gameStore.grantStarterCards();
       const p = gameStore.getPlayer();
-      setPlayer({ ...p, cards: [...p.cards], currentDeck: [...p.currentDeck], items: [...p.items] });
+      setPlayer({ ...p, cards: [...(p.cards || [])], currentDeck: [...(p.currentDeck || [])], items: [...(p.items || [])] });
       setUnlockedStages([...gameStore.getState().unlockedStages]);
     };
     init();
 
     const unsubscribe = gameStore.subscribe(() => {
       const p = gameStore.getPlayer();
-      setPlayer({ ...p, cards: [...p.cards], currentDeck: [...p.currentDeck], items: [...p.items] });
+      setPlayer({ ...p, cards: [...(p.cards || [])], currentDeck: [...(p.currentDeck || [])], items: [...(p.items || [])] });
       setUnlockedStages([...gameStore.getState().unlockedStages]);
     });
     return unsubscribe;
