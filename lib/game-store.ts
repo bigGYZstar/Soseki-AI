@@ -181,6 +181,9 @@ class GameStore {
   // 状態の読み込み
   async loadState(): Promise<void> {
     try {
+      // dataStoreを初期化（忘却曲線連携のため）
+      await dataStore.initialize();
+      
       const saved = await AsyncStorage.getItem(GAME_STATE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -500,8 +503,10 @@ class GameStore {
     let damage = 0;
     let heal = 0;
 
-    // 学習ログに記録
+    // 学習ログに記録（忘却曲線連携）
+    console.log('[Game] Recording study for term:', card.termId, 'correct:', correct);
     await dataStore.recordStudy(card.termId, correct);
+    console.log('[Game] Study recorded successfully');
     
     // バーストの場合、2枚目のカードも記録
     if (isBurst && battle.selectedBurstCards) {

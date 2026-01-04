@@ -355,7 +355,16 @@ class DataStore {
   }
 
   async recordStudy(termId: string, correct: boolean): Promise<void> {
+    console.log('[DataStore] recordStudy called:', termId, correct);
+    console.log('[DataStore] initialized:', this.initialized);
+    
+    // 初期化されていない場合は初期化
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    
     const term = this.getTermById(termId);
+    console.log('[DataStore] term found:', term?.term_id);
     if (!term) return;
 
     const id = term.term_id;
@@ -370,7 +379,9 @@ class DataStore {
     const result = calculateNextReview(progress, quality as 0 | 1 | 2 | 3 | 4 | 5);
 
     this.progress[id] = result;
+    console.log('[DataStore] Saving progress for term:', id, 'result:', result);
     await saveProgress(this.progress);
+    console.log('[DataStore] Progress saved successfully');
   }
 }
 
