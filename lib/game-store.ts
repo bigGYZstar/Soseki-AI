@@ -43,6 +43,7 @@ export const STAGES: Stage[] = [
       { id: 'eq1', name: 'P/E Slime', nameJa: 'PERスライム', hp: 40, maxHp: 40, attack: 6, defense: 2, expReward: 15, goldReward: 20, cardDropRate: 0.7, sprite: '🟢' },
       { id: 'eq2', name: 'Dividend Goblin', nameJa: '配当ゴブリン', hp: 50, maxHp: 50, attack: 8, defense: 3, expReward: 20, goldReward: 25, cardDropRate: 0.65, sprite: '👺' },
     ],
+    boss: { id: 'boss_eq1', name: 'Warren the Value King', nameJa: 'バリュー王ウォーレン', hp: 150, maxHp: 150, attack: 15, defense: 8, expReward: 100, goldReward: 150, cardDropRate: 1.0, sprite: '👑' },
   },
   // ステージ2: 株式投資上級
   {
@@ -56,19 +57,21 @@ export const STAGES: Stage[] = [
       { id: 'eq3', name: 'Valuation Golem', nameJa: 'バリュエーションゴーレム', hp: 80, maxHp: 80, attack: 12, defense: 5, expReward: 35, goldReward: 40, cardDropRate: 0.55, sprite: '🗿' },
       { id: 'eq4', name: 'DCF Phantom', nameJa: 'DCFファントム', hp: 70, maxHp: 70, attack: 14, defense: 4, expReward: 30, goldReward: 35, cardDropRate: 0.6, sprite: '👻' },
     ],
+    boss: { id: 'boss_eq2', name: 'DCF Dragon', nameJa: 'DCF竜', hp: 250, maxHp: 250, attack: 22, defense: 12, expReward: 180, goldReward: 250, cardDropRate: 1.0, sprite: '🐉' },
   },
-  // ステージ3: 倫理・職業行為基準（ETH）
+  // ステージ3: 倒理・職業行為基準（ETH）
   {
     id: 3,
     name: 'Ethics Forest',
-    nameJa: '倫理の森',
-    description: 'CFA倫理基準の基礎を学ぶ',
+    nameJa: '倒理の森',
+    description: 'CFA倒理基準の基礎を学ぶ',
     requiredLevel: 5,
     topicCode: 'ETH',
     enemies: [
       { id: 'eth1', name: 'Compliance Goblin', nameJa: 'コンプラゴブリン', hp: 60, maxHp: 60, attack: 10, defense: 4, expReward: 25, goldReward: 30, cardDropRate: 0.6, sprite: '👺' },
-      { id: 'eth2', name: 'Ethics Slime', nameJa: '倫理スライム', hp: 45, maxHp: 45, attack: 8, defense: 3, expReward: 20, goldReward: 25, cardDropRate: 0.65, sprite: '🟢' },
+      { id: 'eth2', name: 'Ethics Slime', nameJa: '倒理スライム', hp: 45, maxHp: 45, attack: 8, defense: 3, expReward: 20, goldReward: 25, cardDropRate: 0.65, sprite: '🟢' },
     ],
+    boss: { id: 'boss_eth', name: 'Ethics Guardian', nameJa: '倒理の守護者', hp: 200, maxHp: 200, attack: 18, defense: 10, expReward: 150, goldReward: 200, cardDropRate: 1.0, sprite: '⚖️' },
   },
   // ステージ4: 定量分析（QM）
   {
@@ -82,6 +85,7 @@ export const STAGES: Stage[] = [
       { id: 'qm1', name: 'Statistics Golem', nameJa: '統計ゴーレム', hp: 90, maxHp: 90, attack: 14, defense: 6, expReward: 40, goldReward: 50, cardDropRate: 0.5, sprite: '🗿' },
       { id: 'qm2', name: 'Probability Phantom', nameJa: '確率ファントム', hp: 75, maxHp: 75, attack: 16, defense: 5, expReward: 35, goldReward: 45, cardDropRate: 0.55, sprite: '👻' },
     ],
+    boss: { id: 'boss_qm', name: 'Sigma Master', nameJa: 'シグママスター', hp: 280, maxHp: 280, attack: 25, defense: 14, expReward: 200, goldReward: 280, cardDropRate: 1.0, sprite: '📊' },
   },
   // ステージ5: 経済学（ECON）
   {
@@ -95,6 +99,7 @@ export const STAGES: Stage[] = [
       { id: 'econ1', name: 'Inflation Dragon', nameJa: 'インフレドラゴン', hp: 120, maxHp: 120, attack: 18, defense: 8, expReward: 50, goldReward: 60, cardDropRate: 0.45, sprite: '🐉' },
       { id: 'econ2', name: 'Supply Demon', nameJa: '供給デーモン', hp: 90, maxHp: 90, attack: 14, defense: 6, expReward: 40, goldReward: 50, cardDropRate: 0.5, sprite: '😈' },
     ],
+    boss: { id: 'boss_econ', name: 'Central Bank Titan', nameJa: '中央銀行の巨人', hp: 350, maxHp: 350, attack: 28, defense: 16, expReward: 250, goldReward: 350, cardDropRate: 1.0, sprite: '🏦' },
   },
   // ステージ6: 財務諸表分析（FSA）
   {
@@ -108,6 +113,7 @@ export const STAGES: Stage[] = [
       { id: 'fsa1', name: 'Balance Sheet Beast', nameJa: 'BS獣', hp: 150, maxHp: 150, attack: 22, defense: 10, expReward: 65, goldReward: 80, cardDropRate: 0.4, sprite: '🦁' },
       { id: 'fsa2', name: 'Income Wraith', nameJa: 'PL亡霊', hp: 110, maxHp: 110, attack: 20, defense: 7, expReward: 55, goldReward: 70, cardDropRate: 0.45, sprite: '💀' },
     ],
+    boss: { id: 'boss_fsa', name: 'Audit Emperor', nameJa: '監査皇帝', hp: 420, maxHp: 420, attack: 32, defense: 18, expReward: 300, goldReward: 420, cardDropRate: 1.0, sprite: '📝' },
   },
   // ステージ7: 債券（FI）
   {
@@ -121,6 +127,7 @@ export const STAGES: Stage[] = [
       { id: 'fi1', name: 'Duration Dragon', nameJa: 'デュレーションドラゴン', hp: 200, maxHp: 200, attack: 26, defense: 12, expReward: 80, goldReward: 100, cardDropRate: 0.35, sprite: '🐲' },
       { id: 'fi2', name: 'Yield Hydra', nameJa: '利回りヒドラ', hp: 180, maxHp: 180, attack: 24, defense: 10, expReward: 70, goldReward: 90, cardDropRate: 0.4, sprite: '🐍' },
     ],
+    boss: { id: 'boss_fi', name: 'Bond King', nameJa: '債券王', hp: 500, maxHp: 500, attack: 36, defense: 20, expReward: 380, goldReward: 500, cardDropRate: 1.0, sprite: '💎' },
   },
   // ステージ8: デリバティブ（DER）
   {
@@ -134,6 +141,7 @@ export const STAGES: Stage[] = [
       { id: 'der1', name: 'Options Overlord', nameJa: 'オプション魔王', hp: 250, maxHp: 250, attack: 30, defense: 14, expReward: 100, goldReward: 130, cardDropRate: 0.3, sprite: '👹' },
       { id: 'der2', name: 'Futures Fiend', nameJa: '先物フィーンド', hp: 220, maxHp: 220, attack: 28, defense: 12, expReward: 90, goldReward: 120, cardDropRate: 0.35, sprite: '🔥' },
     ],
+    boss: { id: 'boss_der', name: 'Black-Scholes Demon', nameJa: 'ブラックショールズ魔神', hp: 600, maxHp: 600, attack: 42, defense: 22, expReward: 450, goldReward: 600, cardDropRate: 1.0, sprite: '👿' },
   },
   // ステージ9: ポートフォリオ管理（PM）
   {
@@ -147,6 +155,7 @@ export const STAGES: Stage[] = [
       { id: 'pm1', name: 'CAPM Colossus', nameJa: 'CAPMコロッサス', hp: 350, maxHp: 350, attack: 38, defense: 18, expReward: 130, goldReward: 180, cardDropRate: 0.25, sprite: '🏔️' },
       { id: 'pm2', name: 'Sharpe Sovereign', nameJa: 'シャープ皇帝', hp: 400, maxHp: 400, attack: 42, defense: 20, expReward: 150, goldReward: 200, cardDropRate: 0.2, sprite: '👑' },
     ],
+    boss: { id: 'boss_pm', name: 'CFA Ultimate', nameJa: 'CFA究極体', hp: 800, maxHp: 800, attack: 50, defense: 25, expReward: 600, goldReward: 800, cardDropRate: 1.0, sprite: '🏆' },
   },
 ];
 
@@ -160,6 +169,12 @@ class GameStore {
       battle: { ...INITIAL_BATTLE_STATE },
       unlockedStages: [1],
       currentStage: 1,
+      dailyMissions: {
+        missions: [],
+        lastResetDate: '',
+        totalCompleted: 0,
+      },
+      bossDefeated: [],
     };
   }
 
@@ -187,6 +202,12 @@ class GameStore {
           unlockedStages: parsed.unlockedStages || [1],
           currentStage: parsed.currentStage || 1,
           battle: { ...INITIAL_BATTLE_STATE }, // バトル状態はリセット
+          dailyMissions: parsed.dailyMissions || {
+            missions: [],
+            lastResetDate: '',
+            totalCompleted: 0,
+          },
+          bossDefeated: parsed.bossDefeated || [],
         };
       }
     } catch (error) {
@@ -201,6 +222,8 @@ class GameStore {
         player: this.state.player,
         unlockedStages: this.state.unlockedStages,
         currentStage: this.state.currentStage,
+        dailyMissions: this.state.dailyMissions,
+        bossDefeated: this.state.bossDefeated,
       };
       await AsyncStorage.setItem(GAME_STATE_KEY, JSON.stringify(toSave));
     } catch (error) {
@@ -509,6 +532,9 @@ class GameStore {
     const burstMultiplier = isBurst ? 2 : 1;
 
     if (correct) {
+      // クイズ正解時のミッション進捗更新
+      this.updateMissionProgress('quiz_correct', 1);
+      
       if (action === 'attack') {
         // バーストの場合、2枚のカードの攻撃力合計 × バースト倍率
         if (isBurst && battle.selectedBurstCards) {
@@ -672,6 +698,18 @@ class GameStore {
         this.state.unlockedStages.push(nextStageId);
       }
 
+      // ボス撃破記録
+      if (battle.enemy && battle.enemy.id.startsWith('boss_')) {
+        this.recordBossDefeat(battle.enemy.id);
+      }
+
+      // ミッション進捗更新
+      this.updateMissionProgress('battle_wins', 1);
+      this.updateMissionProgress('gold_earn', battle.earnedGold);
+      if (battle.earnedCards.length > 0) {
+        this.updateMissionProgress('card_collect', battle.earnedCards.length);
+      }
+
       // アイテム使用済みをリセット
       player.activeItem = null;
 
@@ -758,6 +796,12 @@ class GameStore {
       battle: { ...INITIAL_BATTLE_STATE },
       unlockedStages: [1],
       currentStage: 1,
+      dailyMissions: {
+        missions: [],
+        lastResetDate: '',
+        totalCompleted: 0,
+      },
+      bossDefeated: [],
     };
     await AsyncStorage.removeItem(GAME_STATE_KEY);
     this.notify();
@@ -893,6 +937,275 @@ class GameStore {
     const item = this.state.player.items.find(i => i.type === itemType);
     return item?.quantity ?? 0;
   }
+
+  // ========== ボス戦システム ==========
+  
+  // ボス戦開始
+  startBossBattle(stageId: number): boolean {
+    const stage = STAGES.find((s) => s.id === stageId);
+    if (!stage || !stage.boss) return false;
+
+    // 既に撃破済みのボスは戦えない（リプレイ不可）
+    if (this.state.bossDefeated.includes(stage.boss.id)) {
+      return false;
+    }
+
+    const boss = stage.boss;
+    
+    // デッキから手札をランダムに引く
+    const deckCards = this.state.player.currentDeck
+      .map(id => this.state.player.cards.find(c => c.id === id))
+      .filter((c): c is WordCard => c !== undefined);
+    const shuffled = [...deckCards].sort(() => Math.random() - 0.5);
+    const handSize = this.state.player.handSize;
+    const currentHand = shuffled.slice(0, handSize);
+    const remainingDeck = shuffled.slice(handSize);
+
+    this.state.battle = {
+      inBattle: true,
+      enemy: { ...boss },
+      playerHp: this.state.player.hp,
+      enemyHp: boss.hp,
+      turn: 'player',
+      phase: 'select_action',
+      selectedCard: null,
+      selectedBurstCards: null,
+      isBurstMode: false,
+      quizQuestion: null,
+      cfaQuestion: null,
+      battleLog: [],
+      earnedCards: [],
+      earnedExp: 0,
+      earnedGold: 0,
+      currentHand,
+      remainingDeck,
+      usedCards: [],
+      expMultiplier: 1,
+    };
+    this.state.currentStage = stageId;
+    this.notify();
+    return true;
+  }
+
+  // ボス撃破記録
+  recordBossDefeat(bossId: string): void {
+    if (!this.state.bossDefeated.includes(bossId)) {
+      this.state.bossDefeated.push(bossId);
+      this.updateMissionProgress('boss_defeat', 1);
+      this.saveState();
+    }
+  }
+
+  // ボス撃破済みかチェック
+  isBossDefeated(bossId: string): boolean {
+    return this.state.bossDefeated.includes(bossId);
+  }
+
+  // ステージのボス情報を取得
+  getStageBoss(stageId: number): Enemy | undefined {
+    const stage = STAGES.find((s) => s.id === stageId);
+    return stage?.boss;
+  }
+
+  // ========== デイリーミッションシステム ==========
+
+  // デイリーミッションのリセットチェックと生成
+  checkAndResetDailyMissions(): void {
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (this.state.dailyMissions.lastResetDate !== today) {
+      // 新しいミッションを生成
+      this.state.dailyMissions = {
+        missions: this.generateDailyMissions(),
+        lastResetDate: today,
+        totalCompleted: this.state.dailyMissions.totalCompleted,
+      };
+      this.saveState();
+      this.notify();
+    }
+  }
+
+  // デイリーミッション生成
+  private generateDailyMissions(): DailyMission[] {
+    const missionTemplates = [
+      { type: 'battle_wins' as MissionType, name: 'バトル勝利', description: 'バトルに{target}回勝利する', targets: [3, 5, 7], goldBase: 100, expBase: 50 },
+      { type: 'quiz_correct' as MissionType, name: 'クイズマスター', description: 'クイズに{target}回正解する', targets: [5, 10, 15], goldBase: 80, expBase: 40 },
+      { type: 'card_collect' as MissionType, name: 'カードコレクター', description: 'カードを{target}枚獲得する', targets: [2, 3, 5], goldBase: 150, expBase: 75 },
+      { type: 'gold_earn' as MissionType, name: 'ゴールドハンター', description: 'ゴールドを{target}G稼ぐ', targets: [100, 200, 300], goldBase: 50, expBase: 30 },
+      { type: 'boss_defeat' as MissionType, name: 'ボスハンター', description: 'ボスを{target}体倒す', targets: [1], goldBase: 300, expBase: 150 },
+    ];
+
+    // ランダムに3つのミッションを選択
+    const shuffled = [...missionTemplates].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 3);
+
+    return selected.map((template, index) => {
+      const targetIndex = Math.floor(Math.random() * template.targets.length);
+      const target = template.targets[targetIndex];
+      const difficulty = targetIndex + 1;
+      
+      return {
+        id: `daily_${Date.now()}_${index}`,
+        type: template.type,
+        name: template.name,
+        description: template.description.replace('{target}', target.toString()),
+        target,
+        current: 0,
+        completed: false,
+        claimed: false,
+        rewardGold: template.goldBase * difficulty,
+        rewardExp: template.expBase * difficulty,
+      };
+    });
+  }
+
+  // ミッション進捗更新
+  updateMissionProgress(type: MissionType, amount: number): void {
+    this.checkAndResetDailyMissions();
+    
+    for (const mission of this.state.dailyMissions.missions) {
+      if (mission.type === type && !mission.completed) {
+        mission.current = Math.min(mission.current + amount, mission.target);
+        if (mission.current >= mission.target) {
+          mission.completed = true;
+        }
+      }
+    }
+    this.saveState();
+    this.notify();
+  }
+
+  // ミッション報酬受取
+  claimMissionReward(missionId: string): { success: boolean; gold: number; exp: number } {
+    const mission = this.state.dailyMissions.missions.find(m => m.id === missionId);
+    if (!mission || !mission.completed || mission.claimed) {
+      return { success: false, gold: 0, exp: 0 };
+    }
+
+    mission.claimed = true;
+    this.state.player.gold += mission.rewardGold;
+    this.state.player.exp += mission.rewardExp;
+    this.state.dailyMissions.totalCompleted++;
+
+    // レベルアップチェック
+    const player = this.state.player;
+    while (player.exp >= player.expToNextLevel) {
+      player.exp -= player.expToNextLevel;
+      player.level++;
+      player.maxHp += 10;
+      player.hp = player.maxHp;
+      player.expToNextLevel = Math.floor(player.expToNextLevel * 1.2);
+      player.deckCapacity = LEVEL_LIMITS.getDeckCapacity(player.level);
+      player.handSize = LEVEL_LIMITS.getHandSize(player.level);
+    }
+
+    this.saveState();
+    this.notify();
+    return { success: true, gold: mission.rewardGold, exp: mission.rewardExp };
+  }
+
+  // デイリーミッション取得
+  getDailyMissions(): DailyMission[] {
+    this.checkAndResetDailyMissions();
+    return this.state.dailyMissions.missions;
+  }
+
+  // ========== カード合成システム ==========
+
+  // 合成可能なカードペアを取得（同じtermIdのカードが2枚以上）
+  getFusionCandidates(): { termId: string; cards: WordCard[] }[] {
+    const cardsByTerm: Record<string, WordCard[]> = {};
+    
+    for (const card of this.state.player.cards) {
+      if (!cardsByTerm[card.termId]) {
+        cardsByTerm[card.termId] = [];
+      }
+      cardsByTerm[card.termId].push(card);
+    }
+
+    return Object.entries(cardsByTerm)
+      .filter(([, cards]) => cards.length >= 2)
+      .map(([termId, cards]) => ({ termId, cards }));
+  }
+
+  // カード合成実行
+  fuseCards(cardIds: string[]): FusionResult {
+    if (cardIds.length < 2) {
+      return { success: false, consumedCards: [] };
+    }
+
+    const cards = cardIds.map(id => this.state.player.cards.find(c => c.id === id)).filter((c): c is WordCard => c !== undefined);
+    
+    if (cards.length < 2) {
+      return { success: false, consumedCards: [] };
+    }
+
+    // 同じtermIdのカードのみ合成可能
+    const termId = cards[0].termId;
+    if (!cards.every(c => c.termId === termId)) {
+      return { success: false, consumedCards: [] };
+    }
+
+    // 最高レアリティのカードをベースに
+    const rarityOrder: CardRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+    const sortedCards = [...cards].sort((a, b) => rarityOrder.indexOf(b.rarity) - rarityOrder.indexOf(a.rarity));
+    const baseCard = sortedCards[0];
+    const materialsCount = cards.length - 1;
+
+    // レアリティアップ確率（素材数に応じて上昇）
+    const baseUpgradeChance = 0.3;
+    const upgradeChance = Math.min(baseUpgradeChance + (materialsCount - 1) * 0.15, 0.8);
+    const currentRarityIndex = rarityOrder.indexOf(baseCard.rarity);
+
+    let newRarity = baseCard.rarity;
+    if (currentRarityIndex < rarityOrder.length - 1 && Math.random() < upgradeChance) {
+      newRarity = rarityOrder[currentRarityIndex + 1];
+    }
+
+    // 新しいカードを作成
+    const newStats = RARITY_STATS[newRarity];
+    const newCard: WordCard = {
+      id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      termId: baseCard.termId,
+      term: baseCard.term,
+      termJa: baseCard.termJa,
+      rarity: newRarity,
+      attackPower: newStats.attack,
+      healPower: newStats.heal,
+      acquired: true,
+      acquiredAt: Date.now(),
+      usageCount: 0,
+      successCount: 0,
+      upgradeLevel: Math.max(...cards.map(c => c.upgradeLevel)),  // 最高の強化レベルを引き継ぐ
+    };
+
+    // 素材カードを削除
+    const consumedIds = cards.map(c => c.id);
+    this.state.player.cards = this.state.player.cards.filter(c => !consumedIds.includes(c.id));
+    
+    // デッキからも削除
+    this.state.player.currentDeck = this.state.player.currentDeck.filter(id => !consumedIds.includes(id));
+
+    // 新カードを追加
+    this.state.player.cards.push(newCard);
+
+    this.saveState();
+    this.notify();
+
+    return {
+      success: true,
+      newCard,
+      consumedCards: consumedIds,
+    };
+  }
+
+  // 合成に必要なカード数を取得
+  getFusionRequirement(): number {
+    return 2;  // 最低2枚必要
+  }
 }
 
 export const gameStore = new GameStore();
+
+// 型インポートを追加
+import type { DailyMission, MissionType, FusionResult } from './game-types';

@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Image, Alert, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenContainer } from '@/components/screen-container';
 import { useColors } from '@/hooks/use-colors';
 import { gameStore, STAGES } from '@/lib/game-store';
-import { PlayerState, Stage, ItemType, ITEM_DEFINITIONS } from '@/lib/game-types';
+import { PlayerState, Stage, ItemType, ITEM_DEFINITIONS, DailyMission, Enemy, WordCard, CardRarity } from '@/lib/game-types';
 import { RARITY_COLORS, RARITY_NAMES } from '@/lib/game-types';
 
 export default function GameTabScreen() {
@@ -15,6 +15,13 @@ export default function GameTabScreen() {
   const [showShop, setShowShop] = useState(false);
   const [selectedStage, setSelectedStage] = useState<Stage | null>(null);
   const [showItemSelect, setShowItemSelect] = useState(false);
+  const [showMissions, setShowMissions] = useState(false);
+  const [missions, setMissions] = useState<DailyMission[]>([]);
+  const [showFusion, setShowFusion] = useState(false);
+  const [fusionCandidates, setFusionCandidates] = useState<{ termId: string; cards: WordCard[] }[]>([]);
+  const [selectedFusionCards, setSelectedFusionCards] = useState<string[]>([]);
+  const [showBossSelect, setShowBossSelect] = useState(false);
+  const [selectedBoss, setSelectedBoss] = useState<{ stage: Stage; boss: Enemy } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -23,6 +30,8 @@ export default function GameTabScreen() {
       const p = gameStore.getPlayer();
       setPlayer({ ...p, cards: [...(p.cards || [])], currentDeck: [...(p.currentDeck || [])], items: [...(p.items || [])] });
       setUnlockedStages([...gameStore.getState().unlockedStages]);
+      setMissions(gameStore.getDailyMissions());
+      setFusionCandidates(gameStore.getFusionCandidates());
     };
     init();
 
@@ -30,6 +39,8 @@ export default function GameTabScreen() {
       const p = gameStore.getPlayer();
       setPlayer({ ...p, cards: [...(p.cards || [])], currentDeck: [...(p.currentDeck || [])], items: [...(p.items || [])] });
       setUnlockedStages([...gameStore.getState().unlockedStages]);
+      setMissions(gameStore.getDailyMissions());
+      setFusionCandidates(gameStore.getFusionCandidates());
     });
     return unsubscribe;
   }, []);
@@ -44,7 +55,6 @@ export default function GameTabScreen() {
     if (!selectedStage) return;
     
     if (useItem) {
-      // アイテムを使用してバトル開始
       const success = gameStore.useItem('schw_power');
       if (!success) {
         Alert.alert('エラー', 'アイテムがありません');
@@ -56,13 +66,28 @@ export default function GameTabScreen() {
     setShowItemSelect(false);
     setSelectedStage(null);
     
-    // アイテム使用時はCFA実問を出題
     if (useItem) {
       gameStore.startCFAQuiz();
     }
     
     router.push('/game/battle');
   }, [selectedStage, router]);
+
+  const handleBossBattle = useCallback((stage: Stage, boss: Enemy) => {
+    if (gameStore.isBossDefeated(boss.id)) {
+      Alert.alert('撃破済み', 'このボスは既に倒しています');
+      return;
+    }
+    
+    const success = gameStore.startBossBattle(stage.id);
+    if (success) {
+      setShowBossSelect(false);
+      setSelectedBoss(null);
+      router.push('/game/battle');
+    } else {
+      Alert.alert('エラー', 'ボス戦を開始できません');
+    }
+  }, [router]);
 
   const handleBuyItem = useCallback((itemType: ItemType) => {
     const success = gameStore.buyItem(itemType);
@@ -73,8 +98,42 @@ export default function GameTabScreen() {
     }
   }, []);
 
+  const handleClaimReward = useCallback((missionId: string) => {
+    const result = gameStore.claimMissionReward(missionId);
+    if (result.success) {
+      Alert.alert('報酬獲得！', `${result.gold}G、${result.exp}EXPを獲得しました！`);
+    }
+  }, []);
+
+  const handleFusion = useCallback(() => {
+    if (selectedFusionCards.length < 2) {
+      Alert.alert('エラー', '2枚以上のカードを選択してください');
+      return;
+    }
+    
+    const result = gameStore.fuseCards(selectedFusionCards);
+    if (result.success && result.newCard) {
+      const rarityName = RARITY_NAMES[result.newCard.rarity];
+      Alert.alert('合成成功！', `${result.newCard.term}（${rarityName}）を獲得しました！`);
+      setSelectedFusionCards([]);
+      setFusionCandidates(gameStore.getFusionCandidates());
+    } else {
+      Alert.alert('合成失敗', '合成に失敗しました');
+    }
+  }, [selectedFusionCards]);
+
+  const toggleFusionCard = useCallback((cardId: string) => {
+    setSelectedFusionCards(prev => {
+      if (prev.includes(cardId)) {
+        return prev.filter(id => id !== cardId);
+      }
+      return [...prev, cardId];
+    });
+  }, []);
+
   const expPercentage = (player.exp / player.expToNextLevel) * 100;
   const schwCount = gameStore.getItemCount('schw_power');
+  const completedMissions = missions.filter(m => m.completed && !m.claimed).length;
 
   return (
     <ScreenContainer>
@@ -142,9 +201,8 @@ export default function GameTabScreen() {
           </View>
         </View>
 
-        {/* アクションボタン */}
+        {/* アクションボタン - 上段 */}
         <View style={styles.actionRow}>
-          {/* カード枚数 */}
           <Pressable 
             style={({ pressed }) => [
               styles.actionButton, 
@@ -158,7 +216,19 @@ export default function GameTabScreen() {
             <Text style={[styles.actionCount, { color: colors.primary }]}>{player.cards.length}枚</Text>
           </Pressable>
 
-          {/* ショップ */}
+          <Pressable 
+            style={({ pressed }) => [
+              styles.actionButton, 
+              { backgroundColor: colors.surface, borderColor: colors.primary },
+              pressed && { opacity: 0.7 }
+            ]}
+            onPress={() => router.push('/game/deck')}
+          >
+            <Text style={styles.actionIcon}>📚</Text>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>デッキ</Text>
+            <Text style={[styles.actionCount, { color: colors.primary }]}>{player.currentDeck.length}枚</Text>
+          </Pressable>
+
           <Pressable 
             style={({ pressed }) => [
               styles.actionButton, 
@@ -171,19 +241,51 @@ export default function GameTabScreen() {
             <Text style={[styles.actionLabel, { color: colors.foreground }]}>ショップ</Text>
             <Text style={[styles.actionCount, { color: colors.warning }]}>アイテム</Text>
           </Pressable>
+        </View>
 
-          {/* デッキ */}
+        {/* アクションボタン - 下段 */}
+        <View style={styles.actionRow}>
           <Pressable 
             style={({ pressed }) => [
               styles.actionButton, 
-              { backgroundColor: colors.surface, borderColor: colors.primary },
+              { backgroundColor: colors.surface, borderColor: completedMissions > 0 ? colors.success : colors.border },
               pressed && { opacity: 0.7 }
             ]}
-            onPress={() => router.push('/game/deck')}
+            onPress={() => setShowMissions(true)}
           >
-            <Text style={styles.actionIcon}>📚</Text>
-            <Text style={[styles.actionLabel, { color: colors.foreground }]}>デッキ</Text>
-            <Text style={[styles.actionCount, { color: colors.primary }]}>{player.currentDeck.length}枚</Text>
+            <Text style={styles.actionIcon}>📋</Text>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>ミッション</Text>
+            {completedMissions > 0 && (
+              <Text style={[styles.actionCount, { color: colors.success }]}>🎁{completedMissions}</Text>
+            )}
+          </Pressable>
+
+          <Pressable 
+            style={({ pressed }) => [
+              styles.actionButton, 
+              { backgroundColor: colors.surface, borderColor: fusionCandidates.length > 0 ? colors.primary : colors.border },
+              pressed && { opacity: 0.7 }
+            ]}
+            onPress={() => setShowFusion(true)}
+          >
+            <Text style={styles.actionIcon}>🔮</Text>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>合成</Text>
+            {fusionCandidates.length > 0 && (
+              <Text style={[styles.actionCount, { color: colors.primary }]}>{fusionCandidates.length}組</Text>
+            )}
+          </Pressable>
+
+          <Pressable 
+            style={({ pressed }) => [
+              styles.actionButton, 
+              { backgroundColor: colors.surface, borderColor: colors.error },
+              pressed && { opacity: 0.7 }
+            ]}
+            onPress={() => setShowBossSelect(true)}
+          >
+            <Text style={styles.actionIcon}>👹</Text>
+            <Text style={[styles.actionLabel, { color: colors.foreground }]}>ボス</Text>
+            <Text style={[styles.actionCount, { color: colors.error }]}>挑戦</Text>
           </Pressable>
         </View>
 
@@ -204,6 +306,7 @@ export default function GameTabScreen() {
         
         {STAGES.map((stage) => {
           const isUnlocked = unlockedStages.includes(stage.id);
+          const bossDefeated = stage.boss ? gameStore.isBossDefeated(stage.boss.id) : false;
           
           return (
             <Pressable
@@ -223,10 +326,14 @@ export default function GameTabScreen() {
                 <Text style={[styles.stageName, { color: isUnlocked ? colors.foreground : colors.muted }]}>
                   {stage.nameJa}
                 </Text>
+
                 {!isUnlocked && (
                   <Text style={[styles.lockText, { color: colors.error }]}>
                     🔒 Lv.{stage.requiredLevel}
                   </Text>
+                )}
+                {stage.boss && bossDefeated && (
+                  <Text style={[styles.bossDefeated, { color: colors.success }]}>✅ボス撃破</Text>
                 )}
               </View>
               <Text style={[styles.stageDesc, { color: colors.muted }]}>{stage.description}</Text>
@@ -285,7 +392,8 @@ export default function GameTabScreen() {
             </View>
             
             <Pressable
-              style={[styles.closeButton, { backgroundColor: colors.primary }]}
+              style={[styles.closeButton, { backgroundColor: colors.primary
+ }]}
               onPress={() => setShowShop(false)}
             >
               <Text style={styles.closeButtonText}>閉じる</Text>
@@ -342,6 +450,188 @@ export default function GameTabScreen() {
               }}
             >
               <Text style={[styles.cancelButtonText, { color: colors.muted }]}>キャンセル</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* デイリーミッションモーダル */}
+      <Modal
+        visible={showMissions}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowMissions(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>📋 デイリーミッション</Text>
+            
+            <ScrollView style={styles.missionList}>
+              {missions.map((mission) => (
+                <View key={mission.id} style={[styles.missionItem, { backgroundColor: colors.surface, borderColor: mission.completed ? colors.success : colors.border }]}>
+                  <View style={styles.missionInfo}>
+                    <Text style={[styles.missionName, { color: colors.foreground }]}>{mission.name}</Text>
+                    <Text style={[styles.missionDesc, { color: colors.muted }]}>{mission.description}</Text>
+                    <View style={styles.missionProgress}>
+                      <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
+                        <View style={[styles.progressBar, { backgroundColor: colors.primary, width: `${Math.min(100, (mission.current / mission.target) * 100)}%` }]} />
+                      </View>
+                      <Text style={[styles.progressText, { color: colors.muted }]}>{mission.current}/{mission.target}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.missionReward}>
+                    <Text style={[styles.rewardText, { color: colors.warning }]}>💰{mission.rewardGold}</Text>
+                    <Text style={[styles.rewardText, { color: colors.primary }]}>⭐{mission.rewardExp}</Text>
+                    {mission.completed && !mission.claimed && (
+                      <Pressable
+                        style={[styles.claimButton, { backgroundColor: colors.success }]}
+                        onPress={() => handleClaimReward(mission.id)}
+                      >
+                        <Text style={styles.claimButtonText}>受取</Text>
+                      </Pressable>
+                    )}
+                    {mission.claimed && (
+                      <Text style={[styles.claimedText, { color: colors.success }]}>✅</Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+            
+            <Pressable
+              style={[styles.closeButton, { backgroundColor: colors.primary }]}
+              onPress={() => setShowMissions(false)}
+            >
+              <Text style={styles.closeButtonText}>閉じる</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* カード合成モーダル */}
+      <Modal
+        visible={showFusion}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowFusion(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>🔮 カード合成</Text>
+            <Text style={[styles.fusionHint, { color: colors.muted }]}>同じ単語のカード2枚以上で合成可能</Text>
+            
+            <ScrollView style={styles.fusionList}>
+              {fusionCandidates.length === 0 ? (
+                <Text style={[styles.noFusionText, { color: colors.muted }]}>合成可能なカードがありません</Text>
+              ) : (
+                fusionCandidates.map(({ termId, cards }) => (
+                  <View key={termId} style={[styles.fusionGroup, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Text style={[styles.fusionTermName, { color: colors.foreground }]}>{cards[0].term}</Text>
+                    <View style={styles.fusionCards}>
+                      {cards.map((card) => (
+                        <Pressable
+                          key={card.id}
+                          style={[
+                            styles.fusionCard,
+                            { 
+                              borderColor: selectedFusionCards.includes(card.id) ? colors.primary : RARITY_COLORS[card.rarity],
+                              backgroundColor: selectedFusionCards.includes(card.id) ? colors.primary + '20' : 'transparent'
+                            }
+                          ]}
+                          onPress={() => toggleFusionCard(card.id)}
+                        >
+                          <Text style={[styles.fusionCardRarity, { color: RARITY_COLORS[card.rarity] }]}>
+                            {RARITY_NAMES[card.rarity]}
+                          </Text>
+                          {selectedFusionCards.includes(card.id) && (
+                            <Text style={styles.selectedMark}>✓</Text>
+                          )}
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ))
+              )}
+            </ScrollView>
+            
+            {selectedFusionCards.length >= 2 && (
+              <Pressable
+                style={[styles.fusionButton, { backgroundColor: colors.primary }]}
+                onPress={handleFusion}
+              >
+                <Text style={styles.fusionButtonText}>合成する（{selectedFusionCards.length}枚）</Text>
+              </Pressable>
+            )}
+            
+            <Pressable
+              style={[styles.closeButton, { backgroundColor: colors.muted }]}
+              onPress={() => {
+                setShowFusion(false);
+                setSelectedFusionCards([]);
+              }}
+            >
+              <Text style={styles.closeButtonText}>閉じる</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ボス選択モーダル */}
+      <Modal
+        visible={showBossSelect}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowBossSelect(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: colors.background }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>👹 ボス戦</Text>
+            <Text style={[styles.bossHint, { color: colors.muted }]}>各ステージのボスに挑戦！倒すと限定報酬</Text>
+            
+            <ScrollView style={styles.bossList}>
+              {STAGES.filter(s => s.boss && unlockedStages.includes(s.id)).map((stage) => {
+                const boss = stage.boss!;
+                const defeated = gameStore.isBossDefeated(boss.id);
+                
+                return (
+                  <Pressable
+                    key={boss.id}
+                    style={({ pressed }) => [
+                      styles.bossItem,
+                      { 
+                        backgroundColor: defeated ? colors.border : colors.surface,
+                        borderColor: defeated ? colors.success : colors.error,
+                        opacity: defeated ? 0.6 : (pressed ? 0.7 : 1)
+                      }
+                    ]}
+                    onPress={() => handleBossBattle(stage, boss)}
+                    disabled={defeated}
+                  >
+                    <Text style={styles.bossSprite}>{boss.sprite}</Text>
+                    <View style={styles.bossInfo}>
+                      <Text style={[styles.bossName, { color: defeated ? colors.muted : colors.foreground }]}>
+                        {boss.nameJa}
+                      </Text>
+                      <Text style={[styles.bossStageName, { color: colors.muted }]}>{stage.nameJa}</Text>
+                      <Text style={[styles.bossStats, { color: colors.muted }]}>
+                        HP:{boss.hp} ATK:{boss.attack}
+                      </Text>
+                    </View>
+                    <View style={styles.bossRewards}>
+                      <Text style={[styles.bossRewardText, { color: colors.warning }]}>💰{boss.goldReward}</Text>
+                      <Text style={[styles.bossRewardText, { color: colors.primary }]}>⭐{boss.expReward}</Text>
+                      {defeated && <Text style={[styles.defeatedText, { color: colors.success }]}>撃破済</Text>}
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            
+            <Pressable
+              style={[styles.closeButton, { backgroundColor: colors.primary }]}
+              onPress={() => setShowBossSelect(false)}
+            >
+              <Text style={styles.closeButtonText}>閉じる</Text>
             </Pressable>
           </View>
         </View>
@@ -403,7 +693,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   statsRow: {
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statsText: {
     fontSize: 14,
@@ -414,15 +704,15 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   hpLabel: {
-    width: 40,
+    width: 30,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   hpBarBg: {
     flex: 1,
     height: 12,
     borderRadius: 6,
-    overflow: 'hidden',
+    marginHorizontal: 8,
   },
   hpBar: {
     height: '100%',
@@ -430,23 +720,23 @@ const styles = StyleSheet.create({
   },
   hpText: {
     width: 70,
-    textAlign: 'right',
     fontSize: 12,
+    textAlign: 'right',
   },
   expContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   expLabel: {
-    width: 40,
+    width: 30,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   expBarBg: {
     flex: 1,
     height: 8,
     borderRadius: 4,
-    overflow: 'hidden',
+    marginHorizontal: 8,
   },
   expBar: {
     height: '100%',
@@ -454,36 +744,37 @@ const styles = StyleSheet.create({
   },
   expText: {
     width: 70,
-    textAlign: 'right',
     fontSize: 12,
+    textAlign: 'right',
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
+    gap: 8,
+    marginBottom: 12,
   },
   actionButton: {
     flex: 1,
     padding: 12,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     alignItems: 'center',
   },
   actionIcon: {
-    fontSize: 28,
+    fontSize: 24,
     marginBottom: 4,
   },
   actionLabel: {
     fontSize: 12,
+    fontWeight: 'bold',
   },
   actionCount: {
-    fontSize: 14,
-    fontWeight: 'bold',
+    fontSize: 11,
+    marginTop: 2,
   },
   itemsCard: {
     padding: 12,
     borderRadius: 12,
-    borderWidth: 2,
+    borderWidth: 1,
     marginBottom: 16,
   },
   itemsTitle: {
@@ -522,6 +813,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   stageName: {
     fontSize: 16,
@@ -530,24 +822,27 @@ const styles = StyleSheet.create({
   lockText: {
     fontSize: 12,
   },
+  bossDefeated: {
+    fontSize: 12,
+  },
   stageDesc: {
     fontSize: 12,
-    marginTop: 4,
+    marginBottom: 8,
   },
   enemyPreview: {
     flexDirection: 'row',
-    marginTop: 8,
-    gap: 16,
+    gap: 12,
   },
   enemyInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
   enemySprite: {
-    fontSize: 24,
+    fontSize: 20,
   },
   enemyReward: {
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: 12,
   },
   modalOverlay: {
     flex: 1,
@@ -558,51 +853,49 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 400,
+    maxHeight: '80%',
     borderRadius: 16,
     padding: 20,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
   },
   goldDisplay: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   shopItems: {
     gap: 12,
-    marginBottom: 20,
   },
   shopItem: {
-    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
   shopItemInfo: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
   },
   shopItemIcon: {
-    fontSize: 32,
+    fontSize: 24,
     marginRight: 12,
   },
   shopItemText: {
     flex: 1,
   },
   shopItemName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   shopItemDesc: {
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 2,
   },
   buyButton: {
@@ -616,17 +909,17 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 16,
   },
   closeButtonText: {
     color: '#fff',
-    fontSize: 16,
     fontWeight: 'bold',
+    fontSize: 16,
   },
   battleOptions: {
     gap: 12,
-    marginBottom: 16,
   },
   battleOption: {
     padding: 16,
@@ -635,7 +928,7 @@ const styles = StyleSheet.create({
   },
   battleOptionIcon: {
     fontSize: 32,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   battleOptionText: {
     color: '#fff',
@@ -648,12 +941,176 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   cancelButton: {
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
   },
   cancelButtonText: {
+    fontSize: 16,
+  },
+  missionList: {
+    maxHeight: 300,
+  },
+  missionItem: {
+    flexDirection: 'row',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  missionInfo: {
+    flex: 1,
+  },
+  missionName: {
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  missionDesc: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  missionProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    width: 50,
+  },
+  missionReward: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  rewardText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  claimButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 4,
+  },
+  claimButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
+  },
+  claimedText: {
+    fontSize: 16,
+    marginTop: 4,
+  },
+  fusionHint: {
+    textAlign: 'center',
+    marginBottom: 16,
+    fontSize: 12,
+  },
+  fusionList: {
+    maxHeight: 300,
+  },
+  noFusionText: {
+    textAlign: 'center',
+    padding: 20,
+  },
+  fusionGroup: {
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  fusionTermName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  fusionCards: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  fusionCard: {
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  fusionCardRarity: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  selectedMark: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  fusionButton: {
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  fusionButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  bossHint: {
+    textAlign: 'center',
+    marginBottom: 16,
+    fontSize: 12,
+  },
+  bossList: {
+    maxHeight: 300,
+  },
+  bossItem: {
+    flexDirection: 'row',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    marginBottom: 8,
+    alignItems: 'center',
+  },
+  bossSprite: {
+    fontSize: 40,
+    marginRight: 12,
+  },
+  bossInfo: {
+    flex: 1,
+  },
+  bossName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  bossStageName: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  bossStats: {
+    fontSize: 11,
+    marginTop: 4,
+  },
+  bossRewards: {
+    alignItems: 'flex-end',
+  },
+  bossRewardText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  defeatedText: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });

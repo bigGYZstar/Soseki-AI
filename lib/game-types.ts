@@ -126,6 +126,8 @@ export interface GameState {
   battle: BattleState;
   unlockedStages: number[];
   currentStage: number;
+  dailyMissions: DailyMissionState;  // デイリーミッション
+  bossDefeated: string[];            // 撃破済みボスIDリスト
 }
 
 // ステージ定義
@@ -135,8 +137,40 @@ export interface Stage {
   nameJa: string;
   description: string;
   enemies: Enemy[];
+  boss?: Enemy;        // ボス戦用の敵
   requiredLevel: number;
   topicCode?: string;  // 特定の科目に関連
+}
+
+// デイリーミッションタイプ
+export type MissionType = 'battle_wins' | 'quiz_correct' | 'card_collect' | 'gold_earn' | 'boss_defeat';
+
+// デイリーミッション
+export interface DailyMission {
+  id: string;
+  type: MissionType;
+  name: string;
+  description: string;
+  target: number;      // 目標値
+  current: number;     // 現在の進捗
+  completed: boolean;  // 完了済みか
+  claimed: boolean;    // 報酬受取済みか
+  rewardGold: number;  // ゴールド報酬
+  rewardExp: number;   // EXP報酬
+}
+
+// デイリーミッション状態
+export interface DailyMissionState {
+  missions: DailyMission[];
+  lastResetDate: string;  // YYYY-MM-DD形式
+  totalCompleted: number; // 累計完了数
+}
+
+// カード合成結果
+export interface FusionResult {
+  success: boolean;
+  newCard?: WordCard;
+  consumedCards: string[];  // 消費したカードID
 }
 
 // レアリティ別のステータス設定
