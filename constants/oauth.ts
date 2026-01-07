@@ -3,7 +3,7 @@ import * as ReactNative from "react-native";
 
 // Extract scheme from bundle ID (last segment timestamp, prefixed with "manus")
 // e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
-const bundleId = "space.manus.cfa.vocab.app.t20260103091412";
+const bundleId = "space.manus.soseki.ai.t20251217235755";
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
 const schemeFromBundleId = `manus${timestamp}`;
 

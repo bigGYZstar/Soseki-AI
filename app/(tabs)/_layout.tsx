@@ -1,66 +1,45 @@
 import { Tabs } from "expo-router";
+import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function TabLayout() {
-  const colors = useColors();
+  const colorScheme = useColorScheme();
   const insets = useSafeAreaInsets();
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
-  const tabBarHeight = 56 + bottomPadding;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        // Ensure tab bar respects bottom safe area for devices with home indicators
         tabBarStyle: {
-          paddingTop: 8,
-          paddingBottom: bottomPadding,
-          height: tabBarHeight,
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
+          paddingBottom: insets.bottom,
+          height: 49 + insets.bottom, // Default tab bar height (49) + safe area
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "ホーム",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="study"
-        options={{
-          title: "学習",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="quiz"
-        options={{
-          title: "クイズ",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="questionmark.circle.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="game"
-        options={{
-          title: "ゲーム",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gamepad.fill" color={color} />,
+          title: "チャット",
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="bubble.left.and.bubble.right.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "設定",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="gearshape.fill" color={color} />
+          ),
         }}
       />
     </Tabs>

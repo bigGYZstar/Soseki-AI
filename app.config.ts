@@ -4,7 +4,7 @@ import type { ExpoConfig } from "expo/config";
 
 // Bundle ID format: space.manus.<project_name_dots>.<timestamp>
 // e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
-const bundleId = "space.manus.cfa.vocab.app.t20260103091412";
+const bundleId = "space.manus.soseki.ai.t20251217235755";
 // Extract timestamp from bundle ID and prefix with "manus" for deep link scheme
 // e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
 const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
@@ -12,11 +12,11 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "CFA Level I 単語帳",
-  appSlug: "cfa-vocab-app",
+  appName: 'SOSEKI AI',
+  appSlug: 'soseki-ai',
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663135583821/wGtMupqnneWUvgkw.png",
+  logoUrl: 'https://files.manuscdn.com/user_upload_by_module/session_file/310519663135583821/foppInOJFDyZaEXG.png',
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
@@ -34,6 +34,9 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
+    infoPlist: {
+      UIBackgroundModes: ["audio"],
+    },
   },
   android: {
     adaptiveIcon: {
@@ -61,25 +64,11 @@ const config: ExpoConfig = {
     ],
   },
   web: {
-    bundler: "metro",
     output: "static",
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
     "expo-router",
-    [
-      "expo-audio",
-      {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
-    ],
-    [
-      "expo-video",
-      {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
-      },
-    ],
     [
       "expo-splash-screen",
       {
@@ -89,15 +78,6 @@ const config: ExpoConfig = {
         backgroundColor: "#ffffff",
         dark: {
           backgroundColor: "#000000",
-        },
-      },
-    ],
-    [
-      "expo-build-properties",
-      {
-        android: {
-          minSdkVersion: 24,
-          buildArchs: ["armeabi-v7a", "arm64-v8a"],
         },
       },
     ],

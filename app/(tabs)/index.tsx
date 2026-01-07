@@ -1,373 +1,347 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, Text, View, Pressable, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ScreenContainer } from '@/components/screen-container';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { loadTerms, loadProgress, getReviewDueTerms, TOPICS } from '@/lib/data-store';
-import type { Term, LearningProgress } from '@/lib/types';
+import { useState, useRef, useEffect } from "react";
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  Pressable,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const [terms, setTerms] = useState<Term[]>([]);
-  const [progress, setProgress] = useState<Record<string, LearningProgress>>({});
-  const [reviewCount, setReviewCount] = useState(0);
-  const [masteredCount, setMasteredCount] = useState(0);
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { MessageBubble, Message } from "@/components/message-bubble";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useSettings, useOnboarding } from "@/hooks/use-settings";
+import { BorderRadius, Spacing } from "@/constants/theme";
+import {
+  initialMessage,
+  generateMockResponse,
+  getAlternativeQuote,
+} from "@/data/mock-responses";
 
+export default function ChatScreen() {
+  const insets = useSafeAreaInsets();
+  const flatListRef = useRef<FlatList>(null);
+  const { settings } = useSettings();
+  const { isComplete } = useOnboarding();
+
+  const [messages, setMessages] = useState<Message[]>([initialMessage]);
+  const [inputText, setInputText] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const accentColor = useThemeColor({}, "accent");
+  const backgroundColor = useThemeColor({}, "background");
+  const surfaceColor = useThemeColor({}, "surface");
+  const textColor = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const borderColor = useThemeColor({}, "border");
+  const inputBgColor = useThemeColor({}, "inputBackground");
+
+  // オンボーディング未完了の場合はリダイレクト
   useEffect(() => {
-    loadData();
-  }, []);
+    if (isComplete === false) {
+      router.replace("/onboarding");
+    }
+  }, [isComplete]);
 
-  async function loadData() {
-    const loadedTerms = await loadTerms();
-    const loadedProgress = await loadProgress();
-    setTerms(loadedTerms);
-    setProgress(loadedProgress);
+  const handleSend = async () => {
+    if (!inputText.trim() || isLoading) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: inputText.trim(),
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputText("");
+    setIsLoading(true);
+
+    // モック応答を生成（実際のAPIコールをシミュレート）
+    setTimeout(() => {
+      const response = generateMockResponse(userMessage.content);
+      setMessages((prev) => [...prev, response]);
+      setIsLoading(false);
+      
+      // スクロールを最下部に
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }, 1500);
+  };
+
+  const handleAlternativeQuote = (messageId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
-    const reviewDue = getReviewDueTerms(loadedTerms, loadedProgress);
-    setReviewCount(reviewDue.length);
+    setMessages((prev) =>
+      prev.map((msg) => {
+        if (msg.id === messageId && msg.quote) {
+          const newQuote = getAlternativeQuote(msg.quote.text);
+          return { ...msg, quote: newQuote };
+        }
+        return msg;
+      })
+    );
+  };
+
+  const handleDigDeeper = (messageId: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
-    const mastered = Object.values(loadedProgress).filter(p => p.repetitions >= 3).length;
-    setMasteredCount(mastered);
-  }
+    const targetMessage = messages.find((m) => m.id === messageId);
+    if (!targetMessage?.question) return;
 
-  const totalTerms = terms.length;
-  const learnedTerms = Object.keys(progress).length;
-  const progressPercent = totalTerms > 0 ? Math.round((learnedTerms / totalTerms) * 100) : 0;
+    // 問い返しを新しいユーザー入力として扱う
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: `「${targetMessage.question}」について、もう少し考えてみたい。`,
+      timestamp: new Date(),
+    };
 
-  return (
-    <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
-          {/* ヘッダー */}
-          <View style={styles.header}>
-            <Text style={styles.title}>CFA Level I</Text>
-            <Text style={styles.subtitle}>高頻出用語 Top200</Text>
-          </View>
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
 
-          {/* 進捗サマリー */}
-          <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>学習進捗</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-            </View>
-            <View style={styles.statsRow}>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{learnedTerms}</Text>
-                <Text style={styles.statLabel}>学習済み</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{masteredCount}</Text>
-                <Text style={styles.statLabel}>習得</Text>
-              </View>
-              <View style={styles.stat}>
-                <Text style={styles.statValue}>{totalTerms}</Text>
-                <Text style={styles.statLabel}>総数</Text>
-              </View>
-            </View>
-          </View>
+    setTimeout(() => {
+      const response = generateMockResponse(userMessage.content);
+      setMessages((prev) => [...prev, response]);
+      setIsLoading(false);
+      
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }, 1500);
+  };
 
-          {/* 今日の復習 */}
-          {reviewCount > 0 && (
+  const renderMessage = ({ item }: { item: Message }) => (
+    <View style={styles.messageContainer}>
+      <MessageBubble message={item} showEnglish={settings.showEnglish} />
+      
+      {item.role === "assistant" && item.quote && (
+        <View style={styles.actionButtons}>
+          <Pressable
+            style={[styles.actionButton, { borderColor }]}
+            onPress={() => handleAlternativeQuote(item.id)}
+          >
+            <ThemedText style={[styles.actionButtonText, { color: accentColor }]}>
+              別の一節を
+            </ThemedText>
+          </Pressable>
+          
+          {item.question && (
             <Pressable
-              style={({ pressed }) => [
-                styles.reviewCard,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => router.push('/review' as any)}
+              style={[styles.actionButton, { borderColor }]}
+              onPress={() => handleDigDeeper(item.id)}
             >
-              <View style={styles.reviewIcon}>
-                <IconSymbol name="clock.fill" size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.reviewContent}>
-                <Text style={styles.reviewTitle}>今日の復習</Text>
-                <Text style={styles.reviewCount}>{reviewCount}語</Text>
-              </View>
-              <IconSymbol name="chevron.right" size={20} color="#687076" />
+              <ThemedText style={[styles.actionButtonText, { color: accentColor }]}>
+                もう少し掘る
+              </ThemedText>
             </Pressable>
           )}
-
-          {/* クイックアクセス */}
-          <Text style={styles.sectionTitle}>クイックアクセス</Text>
-          <View style={styles.quickActions}>
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionCard,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => router.push('/(tabs)/study' as any)}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: '#4A90E2' }]}>
-                <IconSymbol name="book.fill" size={28} color="#FFFFFF" />
-              </View>
-              <Text style={styles.actionTitle}>学習モード</Text>
-              <Text style={styles.actionDesc}>用語を学習する</Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionCard,
-                pressed && styles.pressed,
-              ]}
-              onPress={() => router.push('/(tabs)/quiz' as any)}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: '#E74C3C' }]}>
-                <IconSymbol name="questionmark.circle.fill" size={28} color="#FFFFFF" />
-              </View>
-              <Text style={styles.actionTitle}>クイズモード</Text>
-              <Text style={styles.actionDesc}>理解度をテスト</Text>
-            </Pressable>
-          </View>
-
-          {/* 忘却曲線ダッシュボード */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.srsCard,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => router.push('/srs-dashboard' as any)}
-          >
-            <View style={styles.srsIcon}>
-              <IconSymbol name="chart.bar.fill" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.srsContent}>
-              <Text style={styles.srsTitle}>忘却曲線ダッシュボード</Text>
-              <Text style={styles.srsDesc}>記憶保持率・苦手語・復習状況を確認</Text>
-            </View>
-            <IconSymbol name="chevron.right" size={20} color="#687076" />
-          </Pressable>
-
-          {/* 科目一覧 */}
-          <Text style={styles.sectionTitle}>科目別</Text>
-          <View style={styles.topicList}>
-            {TOPICS.map(topic => (
-              <Pressable
-                key={topic.code}
-                style={({ pressed }) => [
-                  styles.topicItem,
-                  pressed && styles.pressed,
-                ]}
-                onPress={() => router.push(`/(tabs)/study?topic=${topic.code}` as any)}
-              >
-                <View style={[styles.topicBadge, { backgroundColor: topic.color }]}>
-                  <Text style={styles.topicBadgeText}>{topic.code}</Text>
-                </View>
-                <View style={styles.topicContent}>
-                  <Text style={styles.topicName}>{topic.name_jp}</Text>
-                  <Text style={styles.topicCount}>{topic.term_count}語</Text>
-                </View>
-                <IconSymbol name="chevron.right" size={16} color="#687076" />
-              </Pressable>
-            ))}
-          </View>
         </View>
-      </ScrollView>
-    </ScreenContainer>
+      )}
+    </View>
+  );
+
+  // オンボーディング状態を確認中
+  if (isComplete === null) {
+    return (
+      <ThemedView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={accentColor} />
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoid}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
+      >
+        {/* Header */}
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: Math.max(insets.top, 16),
+              backgroundColor: surfaceColor,
+              borderBottomColor: borderColor,
+            },
+          ]}
+        >
+          <ThemedText type="subtitle" style={styles.headerTitle}>
+            漱石AI
+          </ThemedText>
+          <ThemedText style={[styles.headerSubtitle, { color: textSecondary }]}>
+            {settings.showEnglish ? "SOSEKI AI" : ""}
+          </ThemedText>
+        </View>
+
+        {/* Messages */}
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={[
+            styles.messagesList,
+            { paddingBottom: Spacing.lg },
+          ]}
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }}
+        />
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <View style={styles.loadingIndicator}>
+            <ActivityIndicator size="small" color={accentColor} />
+            <ThemedText style={[styles.loadingText, { color: textSecondary }]}>
+              漱石が考えております...
+            </ThemedText>
+          </View>
+        )}
+
+        {/* Input area */}
+        <View
+          style={[
+            styles.inputContainer,
+            {
+              paddingBottom: Math.max(insets.bottom, 16),
+              backgroundColor: surfaceColor,
+              borderTopColor: borderColor,
+            },
+          ]}
+        >
+          <View style={[styles.inputWrapper, { backgroundColor: inputBgColor, borderColor }]}>
+            <TextInput
+              style={[styles.input, { color: textColor }]}
+              placeholder="悩みや迷いを話してみてください..."
+              placeholderTextColor={textSecondary}
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+              maxLength={500}
+              editable={!isLoading}
+            />
+          </View>
+          
+          <Pressable
+            style={[
+              styles.sendButton,
+              {
+                backgroundColor: inputText.trim() && !isLoading ? accentColor : borderColor,
+              },
+            ]}
+            onPress={handleSend}
+            disabled={!inputText.trim() || isLoading}
+          >
+            <ThemedText style={styles.sendButtonText}>送信</ThemedText>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  keyboardAvoid: {
+    flex: 1,
   },
   header: {
-    marginBottom: 24,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#687076',
-    marginTop: 4,
-  },
-  summaryCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  summaryTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#687076',
-    marginBottom: 12,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 16,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#4A90E2',
-    borderRadius: 4,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  stat: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#687076',
-    marginTop: 4,
-  },
-  reviewCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF3CD',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  reviewIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F5A623',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  reviewContent: {
-    flex: 1,
-  },
-  reviewTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  reviewCount: {
-    fontSize: 14,
-    color: '#856404',
-    marginTop: 2,
-  },
-  sectionTitle: {
+  headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
   },
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 24,
-  },
-  actionCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  actionDesc: {
+  headerSubtitle: {
     fontSize: 12,
-    color: '#687076',
-    marginTop: 4,
-  },
-  topicList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  topicItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  topicBadge: {
-    width: 40,
-    height: 24,
-    borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  topicBadgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  topicContent: {
-    flex: 1,
-  },
-  topicName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1A1A1A',
-  },
-  topicCount: {
-    fontSize: 12,
-    color: '#687076',
-  },
-  srsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#E8F4FD',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  srsIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#4A90E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  srsContent: {
-    flex: 1,
-  },
-  srsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  srsDesc: {
-    fontSize: 12,
-    color: '#4A90E2',
     marginTop: 2,
   },
-  pressed: {
-    opacity: 0.7,
+  messagesList: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  messageContainer: {
+    marginBottom: Spacing.md,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  actionButton: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  loadingIndicator: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
+  },
+  loadingText: {
+    fontSize: 14,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.sm,
+  },
+  inputWrapper: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    minHeight: 44,
+    maxHeight: 120,
+  },
+  input: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  sendButton: {
+    width: 60,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sendButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

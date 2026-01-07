@@ -1,293 +1,301 @@
-import { useState } from 'react';
-import { ScrollView, Text, View, Pressable, StyleSheet, Alert } from 'react-native';
-import { ScreenContainer } from '@/components/screen-container';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { loadTerms, loadExamples, exportToAnkiTSV } from '@/lib/data-store';
-import * as Clipboard from 'expo-clipboard';
+import { useState } from "react";
+import {
+  StyleSheet,
+  View,
+  Switch,
+  Pressable,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
+
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useSettings, useOnboarding } from "@/hooks/use-settings";
+import { BorderRadius, Spacing } from "@/constants/theme";
+
+interface SettingRowProps {
+  label: string;
+  sublabel?: string;
+  value?: boolean;
+  onValueChange?: (value: boolean) => void;
+  onPress?: () => void;
+  showArrow?: boolean;
+  destructive?: boolean;
+}
+
+function SettingRow({
+  label,
+  sublabel,
+  value,
+  onValueChange,
+  onPress,
+  showArrow,
+  destructive,
+}: SettingRowProps) {
+  const surfaceColor = useThemeColor({}, "surface");
+  const textColor = useThemeColor({}, "text");
+  const textSecondary = useThemeColor({}, "textSecondary");
+  const accentColor = useThemeColor({}, "accent");
+  const borderColor = useThemeColor({}, "border");
+
+  const content = (
+    <View style={[styles.settingRow, { backgroundColor: surfaceColor, borderBottomColor: borderColor }]}>
+      <View style={styles.settingLabelContainer}>
+        <ThemedText
+          style={[
+            styles.settingLabel,
+            destructive && { color: "#FF3B30" },
+          ]}
+        >
+          {label}
+        </ThemedText>
+        {sublabel && (
+          <ThemedText style={[styles.settingSublabel, { color: textSecondary }]}>
+            {sublabel}
+          </ThemedText>
+        )}
+      </View>
+      
+      {onValueChange !== undefined && value !== undefined && (
+        <Switch
+          value={value}
+          onValueChange={(newValue) => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onValueChange(newValue);
+          }}
+          trackColor={{ false: "#E0E0E0", true: accentColor }}
+          thumbColor="#FFFFFF"
+        />
+      )}
+      
+      {showArrow && (
+        <ThemedText style={[styles.arrow, { color: textSecondary }]}>›</ThemedText>
+      )}
+    </View>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
+}
 
 export default function SettingsScreen() {
-  const [showEnglishFirst, setShowEnglishFirst] = useState(true);
-  const [hideExample, setHideExample] = useState(false);
-  const [hideTranslation, setHideTranslation] = useState(false);
-  const [enableTTS, setEnableTTS] = useState(false);
+  const insets = useSafeAreaInsets();
+  const { settings, updateSettings, clearAllData } = useSettings();
+  const { resetOnboarding } = useOnboarding();
 
-  const handleExportAnki = async () => {
-    try {
-      const terms = await loadTerms();
-      const examples = await loadExamples();
-      const tsv = exportToAnkiTSV(terms, examples);
-      await Clipboard.setStringAsync(tsv);
-      Alert.alert('エクスポート完了', 'Anki TSVデータをクリップボードにコピーしました。');
-    } catch (error) {
-      Alert.alert('エラー', 'エクスポートに失敗しました。');
-    }
-  };
+  const backgroundColor = useThemeColor({}, "background");
+  const surfaceColor = useThemeColor({}, "surface");
+  const textSecondary = useThemeColor({}, "textSecondary");
 
-  const handleBackup = () => {
-    Alert.alert('バックアップ', 'この機能は近日公開予定です。');
-  };
-
-  const handleRestore = () => {
-    Alert.alert('復元', 'この機能は近日公開予定です。');
-  };
-
-  const handleResetProgress = () => {
+  const handleClearData = () => {
     Alert.alert(
-      '学習進捗をリセット',
-      'すべての学習進捗がリセットされます。この操作は取り消せません。',
+      "データを削除",
+      "すべての会話履歴と設定が削除されます。この操作は取り消せません。",
       [
-        { text: 'キャンセル', style: 'cancel' },
-        { text: 'リセット', style: 'destructive', onPress: () => {
-          // TODO: 実装
-          Alert.alert('完了', '学習進捗をリセットしました。');
-        }},
+        { text: "キャンセル", style: "cancel" },
+        {
+          text: "削除",
+          style: "destructive",
+          onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await clearAllData();
+            Alert.alert("完了", "データが削除されました。");
+          },
+        },
       ]
     );
   };
 
+  const handleShowDisclaimer = () => {
+    router.push("/modal");
+  };
+
+  const handleResetOnboarding = async () => {
+    await resetOnboarding();
+    router.replace("/onboarding");
+  };
+
   return (
-    <ScreenContainer className="bg-background">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View style={styles.container}>
-          {/* ヘッダー */}
-          <View style={styles.header}>
-            <Text style={styles.title}>設定</Text>
-          </View>
+    <ThemedView style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{
+          paddingTop: Math.max(insets.top, 20),
+          paddingBottom: Math.max(insets.bottom, 20),
+        }}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <ThemedText type="title" style={styles.headerTitle}>
+            設定
+          </ThemedText>
+        </View>
 
-          {/* 表示設定 */}
-          <Text style={styles.sectionTitle}>表示設定</Text>
-          <View style={styles.section}>
-            <ToggleRow
-              label="英語を先に表示"
-              description="学習時に英語見出しを先に表示"
-              value={showEnglishFirst}
-              onToggle={() => setShowEnglishFirst(!showEnglishFirst)}
+        {/* 表示設定 */}
+        <View style={styles.section}>
+          <ThemedText style={[styles.sectionTitle, { color: textSecondary }]}>
+            表示設定
+          </ThemedText>
+          <View style={[styles.sectionContent, { backgroundColor: surfaceColor }]}>
+            <SettingRow
+              label="英語併記"
+              sublabel="高校生レベル以上の語彙に英語を併記します"
+              value={settings.showEnglish}
+              onValueChange={(value) => updateSettings({ showEnglish: value })}
             />
-            <ToggleRow
-              label="例文を隠す"
-              description="詳細画面で例文を初期非表示"
-              value={hideExample}
-              onToggle={() => setHideExample(!hideExample)}
-            />
-            <ToggleRow
-              label="訳を隠す"
-              description="詳細画面で日本語訳を初期非表示"
-              value={hideTranslation}
-              onToggle={() => setHideTranslation(!hideTranslation)}
-            />
-            <ToggleRow
-              label="音声読み上げ"
-              description="英語用語と例文をTTSで読み上げ"
-              value={enableTTS}
-              onToggle={() => setEnableTTS(!enableTTS)}
-              isLast
-            />
-          </View>
-
-          {/* データ管理 */}
-          <Text style={styles.sectionTitle}>データ管理</Text>
-          <View style={styles.section}>
-            <ActionRow
-              icon="paperplane.fill"
-              label="Ankiエクスポート"
-              description="TSV形式でクリップボードにコピー"
-              onPress={handleExportAnki}
-            />
-            <ActionRow
-              icon="arrow.clockwise"
-              label="バックアップ"
-              description="学習データをバックアップ"
-              onPress={handleBackup}
-            />
-            <ActionRow
-              icon="arrow.clockwise"
-              label="復元"
-              description="バックアップから復元"
-              onPress={handleRestore}
-              isLast
-            />
-          </View>
-
-          {/* 危険な操作 */}
-          <Text style={styles.sectionTitle}>その他</Text>
-          <View style={styles.section}>
-            <ActionRow
-              icon="flag.fill"
-              label="学習進捗をリセット"
-              description="すべての学習履歴を削除"
-              onPress={handleResetProgress}
-              isDestructive
-              isLast
-            />
-          </View>
-
-          {/* アプリ情報 */}
-          <View style={styles.appInfo}>
-            <Text style={styles.appName}>CFA Level I 単語帳</Text>
-            <Text style={styles.appVersion}>Version 1.0.0</Text>
           </View>
         </View>
+
+        {/* 通信設定 */}
+        <View style={styles.section}>
+          <ThemedText style={[styles.sectionTitle, { color: textSecondary }]}>
+            通信設定
+          </ThemedText>
+          <View style={[styles.sectionContent, { backgroundColor: surfaceColor }]}>
+            <SettingRow
+              label="クラウド利用を許可"
+              sublabel="端末性能が不足する場合にクラウドを使用します（モック）"
+              value={settings.allowCloud}
+              onValueChange={(value) => updateSettings({ allowCloud: value })}
+            />
+          </View>
+        </View>
+
+        {/* データ管理 */}
+        <View style={styles.section}>
+          <ThemedText style={[styles.sectionTitle, { color: textSecondary }]}>
+            データ管理
+          </ThemedText>
+          <View style={[styles.sectionContent, { backgroundColor: surfaceColor }]}>
+            <SettingRow
+              label="すべてのデータを削除"
+              onPress={handleClearData}
+              destructive
+              showArrow
+            />
+          </View>
+        </View>
+
+        {/* 情報 */}
+        <View style={styles.section}>
+          <ThemedText style={[styles.sectionTitle, { color: textSecondary }]}>
+            情報
+          </ThemedText>
+          <View style={[styles.sectionContent, { backgroundColor: surfaceColor }]}>
+            <SettingRow
+              label="免責事項・ご利用にあたって"
+              onPress={handleShowDisclaimer}
+              showArrow
+            />
+            <SettingRow
+              label="オンボーディングを再表示"
+              onPress={handleResetOnboarding}
+              showArrow
+            />
+          </View>
+        </View>
+
+        {/* アプリ情報 */}
+        <View style={styles.appInfo}>
+          <ThemedText style={[styles.appInfoText, { color: textSecondary }]}>
+            SOSEKI AI
+          </ThemedText>
+          <ThemedText style={[styles.appInfoVersion, { color: textSecondary }]}>
+            Version 1.0.0 (MVP)
+          </ThemedText>
+          <ThemedText style={[styles.appInfoNote, { color: textSecondary }]}>
+            夏目漱石の文体を模した対話AIアプリ
+          </ThemedText>
+        </View>
       </ScrollView>
-    </ScreenContainer>
-  );
-}
-
-interface ToggleRowProps {
-  label: string;
-  description: string;
-  value: boolean;
-  onToggle: () => void;
-  isLast?: boolean;
-}
-
-function ToggleRow({ label, description, value, onToggle, isLast }: ToggleRowProps) {
-  return (
-    <Pressable
-      style={[styles.row, !isLast && styles.rowBorder]}
-      onPress={onToggle}
-    >
-      <View style={styles.rowContent}>
-        <Text style={styles.rowLabel}>{label}</Text>
-        <Text style={styles.rowDesc}>{description}</Text>
-      </View>
-      <View style={[styles.toggle, value && styles.toggleActive]}>
-        <View style={[styles.toggleKnob, value && styles.toggleKnobActive]} />
-      </View>
-    </Pressable>
-  );
-}
-
-interface ActionRowProps {
-  icon: any;
-  label: string;
-  description: string;
-  onPress: () => void;
-  isDestructive?: boolean;
-  isLast?: boolean;
-}
-
-function ActionRow({ icon, label, description, onPress, isDestructive, isLast }: ActionRowProps) {
-  return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.row,
-        !isLast && styles.rowBorder,
-        pressed && styles.pressed,
-      ]}
-      onPress={onPress}
-    >
-      <View style={[styles.rowIcon, isDestructive && styles.rowIconDestructive]}>
-        <IconSymbol name={icon} size={20} color={isDestructive ? '#E74C3C' : '#4A90E2'} />
-      </View>
-      <View style={styles.rowContent}>
-        <Text style={[styles.rowLabel, isDestructive && styles.rowLabelDestructive]}>{label}</Text>
-        <Text style={styles.rowDesc}>{description}</Text>
-      </View>
-      <IconSymbol name="chevron.right" size={16} color="#687076" />
-    </Pressable>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  header: {
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#687076',
-    marginBottom: 8,
-    marginTop: 8,
-    textTransform: 'uppercase',
-  },
-  section: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  rowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  rowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#F0F7FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  rowIconDestructive: {
-    backgroundColor: '#FFF0F0',
-  },
-  rowContent: {
+  scrollView: {
     flex: 1,
   },
-  rowLabel: {
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  headerTitle: {
+    fontSize: 34,
+    fontWeight: "bold",
+  },
+  section: {
+    marginBottom: Spacing.xl,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  sectionContent: {
+    borderRadius: BorderRadius.md,
+    marginHorizontal: Spacing.lg,
+    overflow: "hidden",
+  },
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    minHeight: 52,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  settingLabelContainer: {
+    flex: 1,
+    marginRight: Spacing.md,
+  },
+  settingLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
+    lineHeight: 22,
   },
-  rowLabelDestructive: {
-    color: '#E74C3C',
-  },
-  rowDesc: {
-    fontSize: 12,
-    color: '#687076',
+  settingSublabel: {
+    fontSize: 13,
+    lineHeight: 18,
     marginTop: 2,
   },
-  toggle: {
-    width: 50,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#E5E7EB',
-    padding: 2,
-  },
-  toggleActive: {
-    backgroundColor: '#4A90E2',
-  },
-  toggleKnob: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#FFFFFF',
-  },
-  toggleKnobActive: {
-    transform: [{ translateX: 20 }],
+  arrow: {
+    fontSize: 20,
+    fontWeight: "300",
   },
   appInfo: {
-    alignItems: 'center',
-    marginTop: 24,
-    paddingVertical: 16,
+    alignItems: "center",
+    paddingVertical: Spacing.xxl,
+    paddingHorizontal: Spacing.lg,
   },
-  appName: {
+  appInfoText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontWeight: "600",
   },
-  appVersion: {
+  appInfoVersion: {
+    fontSize: 14,
+    marginTop: Spacing.xs,
+  },
+  appInfoNote: {
     fontSize: 12,
-    color: '#687076',
-    marginTop: 4,
-  },
-  pressed: {
-    opacity: 0.7,
-    backgroundColor: '#F8F9FA',
+    marginTop: Spacing.sm,
+    textAlign: "center",
   },
 });
